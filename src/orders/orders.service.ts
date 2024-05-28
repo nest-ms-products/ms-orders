@@ -8,6 +8,7 @@ import { RpcException } from '@nestjs/microservices';
 import { PrismaClient } from '@prisma/client';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
+import { ChangeStatusDto } from './dto/change-status.dto';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
@@ -59,5 +60,23 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       );
     }
     return order;
+  }
+
+  async changeOrderStatus(changeStatusDto: ChangeStatusDto) {
+    const { id, status } = changeStatusDto;
+    const order = await this.findOne(id);
+
+    if (order.status === status) {
+      return order;
+    }
+
+    return this.order.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+      },
+    });
   }
 }

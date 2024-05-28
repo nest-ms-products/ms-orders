@@ -4,6 +4,7 @@ import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrdersMessages } from 'src/common/enums/messages-tcp.enum';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
+import { ChangeStatusDto } from './dto/change-status.dto';
 
 @Controller()
 export class OrdersController {
@@ -25,7 +26,7 @@ export class OrdersController {
   }
 
   @MessagePattern(OrdersMessages.ChangeStatus)
-  changeOrderStatuss() {
-    throw new Error('Method not implemented.');
+  changeOrderStatuss(@Payload() changeStatusDto: ChangeStatusDto) {
+    return this.ordersService.changeOrderStatus(changeStatusDto);
   }
 }
