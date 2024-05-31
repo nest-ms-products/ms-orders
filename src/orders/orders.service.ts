@@ -1,27 +1,83 @@
 import {
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { PrismaClient } from '@prisma/client';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
+import { ProductsService } from 'src/common/enums/services.enum';
+import { ProductMessages } from 'src/common/enums/messages-tcp.enum';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger(OrdersService.name);
+  constructor(
+    @Inject(ProductsService) private readonly productsClient: ClientProxy,
+  ) {
+    super();
+  }
   onModuleInit() {
     this.$connect();
     this.logger.log('Connected to the database');
   }
-  create(createOrderDto: CreateOrderDto) {
-    return {
-      service: 'orders service',
-      createOrderDto,
-    };
+  async create(createOrderDto: CreateOrderDto) {
+    try {
+      const ids = createOrderDto.items.map((item) => item.productId);
+
+      const products = await firstValueFrom(
+        this.productsClient.send(ProductMessages.ValidateProducts, ids),
+      );
+
+      const { totalAmount, totalItems } = createOrderDto.items.reduce(
+        (acc, item) => {
+          acc.totalAmount += item.quantity * products[item.productId].price;
+          acc.totalItems += item.quantity;
+          return acc;
+        },
+        { totalAmount: 0, totalItems: 0 },
+      );
+
+      const order = await this.order.create({
+        data: {
+          totalAmount,
+          totalItems,
+          ordersItems: {
+            createMany: {
+              data: createOrderDto.items.map((item) => ({
+                quantity: item.quantity,
+                productId: item.productId,
+                price: products[item.productId].price,
+              })),
+            },
+          },
+        },
+        include: {
+          ordersItems: {
+            select: {
+              quantity: true,
+              price: true,
+              productId: true,
+            },
+          },
+        },
+      });
+
+      return {
+        ...order,
+        ordersItems: order.ordersItems.map((item) => ({
+          ...item,
+          name: products[item.productId].name,
+        })),
+      };
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 
   async findAll(orderPaginationDto: OrderPaginationDto) {
