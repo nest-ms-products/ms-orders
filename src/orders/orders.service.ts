@@ -110,12 +110,31 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       where: {
         id,
       },
+      include: {
+        ordersItems: {
+          select: {
+            quantity: true,
+            price: true,
+            productId: true,
+          },
+        },
+      },
     });
     if (!order) {
       throw new RpcException(
         new NotFoundException(`Order with id ${id} not found`),
       );
     }
+    const productsIds = order.ordersItems.map((item) => item.productId);
+
+    const products = await firstValueFrom(
+      this.productsClient.send(ProductMessages.ValidateProducts, productsIds),
+    );
+
+    order.ordersItems = order.ordersItems.map((item) => ({
+      ...item,
+      name: products[item.productId].name,
+    }));
     return order;
   }
 
