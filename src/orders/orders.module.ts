@@ -1,23 +1,10 @@
 import { Module } from '@nestjs/common';
-import { OrdersService } from './orders.service';
+import { NatsModule } from 'src/transports/nats.module';
 import { OrdersController } from './orders.controller';
-import { ClientsModule, Transport } from '@nestjs/microservices';
-import { envs } from 'src/config/envs';
-import { ProductsService } from 'src/common/enums/services.enum';
+import { OrdersService } from './orders.service';
 
 @Module({
-  imports: [
-    ClientsModule.register([
-      {
-        name: ProductsService,
-        transport: Transport.TCP,
-        options: {
-          host: envs.msProductsHost,
-          port: envs.msProductsPort,
-        },
-      },
-    ]),
-  ],
+  imports: [NatsModule],
   controllers: [OrdersController],
   providers: [OrdersService],
 })

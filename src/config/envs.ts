@@ -5,6 +5,7 @@ interface EnVars {
   MS_PRODUCTS_HOST: string;
   MS_PRODUCTS_PORT: number;
   DATABASE_URL: string;
+  NATS_SERVERS: string[];
 }
 
 const envSchema = joi
@@ -13,10 +14,14 @@ const envSchema = joi
     MS_PRODUCTS_HOST: joi.string().required(),
     MS_PRODUCTS_PORT: joi.number().required(),
     DATABASE_URL: joi.string().required(),
+    NATS_SERVERS: joi.array().items(joi.string()).required(),
   })
   .unknown(true);
 
-const { error, value } = envSchema.validate(process.env);
+const { error, value } = envSchema.validate({
+  ...process.env,
+  NATS_SERVERS: process.env.NATS_SERVERS?.split(','),
+});
 if (error) {
   throw new Error(`Config validation error: ${error.message}`);
 }
@@ -28,4 +33,5 @@ export const envs = {
   msProductsHost: enVars.MS_PRODUCTS_HOST,
   msProductsPort: enVars.MS_PRODUCTS_PORT,
   databaseUrl: enVars.DATABASE_URL,
+  natsServers: enVars.NATS_SERVERS,
 };

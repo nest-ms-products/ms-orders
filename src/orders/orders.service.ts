@@ -7,19 +7,17 @@ import {
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { PrismaClient } from '@prisma/client';
+import { firstValueFrom } from 'rxjs';
+import { ProductMessages } from 'src/common/enums/messages-tcp.enum';
+import { NatsService } from 'src/common/enums/services.enum';
+import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
-import { ChangeStatusDto } from './dto/change-status.dto';
-import { ProductsService } from 'src/common/enums/services.enum';
-import { ProductMessages } from 'src/common/enums/messages-tcp.enum';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger(OrdersService.name);
-  constructor(
-    @Inject(ProductsService) private readonly productsClient: ClientProxy,
-  ) {
+  constructor(@Inject(NatsService) private readonly client: ClientProxy) {
     super();
   }
   onModuleInit() {
@@ -31,7 +29,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       const ids = createOrderDto.items.map((item) => item.productId);
 
       const products = await firstValueFrom(
-        this.productsClient.send(ProductMessages.ValidateProducts, ids),
+        this.client.send(ProductMessages.ValidateProducts, ids),
       );
 
       const { totalAmount, totalItems } = createOrderDto.items.reduce(
@@ -128,7 +126,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     const productsIds = order.ordersItems.map((item) => item.productId);
 
     const products = await firstValueFrom(
-      this.productsClient.send(ProductMessages.ValidateProducts, productsIds),
+      this.client.send(ProductMessages.ValidateProducts, productsIds),
     );
 
     order.ordersItems = order.ordersItems.map((item) => ({
