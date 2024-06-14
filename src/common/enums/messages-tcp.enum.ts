@@ -3,6 +3,7 @@ export const enum OrdersMessages {
   FindAll = 'FIND_ALL_ORDERS',
   FindOne = 'FIND_ONE_ORDER',
   ChangeStatus = 'CHANGE_ORDER_STATUS',
+  PaymentSuccess = 'PAYMENT_SUCCESS',
 }
 
 export const enum ProductMessages {
