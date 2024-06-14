@@ -8,11 +8,15 @@ import {
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { PrismaClient } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import { ProductMessages } from 'src/common/enums/messages-tcp.enum';
+import {
+  PaymentsMessages,
+  ProductMessages,
+} from 'src/common/enums/messages-tcp.enum';
 import { NatsService } from 'src/common/enums/services.enum';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
+import { OrderWithProducts } from './interfaces/order-with-product.interface';
 
 @Injectable()
 export class OrdersService extends PrismaClient implements OnModuleInit {
@@ -152,5 +156,20 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         status,
       },
     });
+  }
+
+  async createPaymentSession(order: OrderWithProducts) {
+    const paymentSession = await firstValueFrom(
+      this.client.send(PaymentsMessages.CreasteSession, {
+        orderId: order.id,
+        currency: 'usd',
+        items: order.ordersItems.map((item) => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      }),
+    );
+    return paymentSession;
   }
 }

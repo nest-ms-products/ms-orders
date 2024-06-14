@@ -13,3 +13,7 @@ export const enum ProductMessages {
   FindOne = 'FIND_ONE_PRODUCT',
   ValidateProducts = 'VALIDATE_PRODUCTS',
 }
+
+export const enum PaymentsMessages {
+  CreasteSession = 'CREATE_PAYMENT_SESSION',
+}
